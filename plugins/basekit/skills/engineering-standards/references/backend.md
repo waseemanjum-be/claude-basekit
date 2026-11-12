@@ -51,8 +51,9 @@
 - Secrets by reference only. Least privilege for every credential and role.
 - Hash passwords with the framework's vetted function. Never write your own
   crypto, token format or session scheme.
-- Encode output for its context (HTML, SQL, shell, URL). Never pass input to a
-  shell, `eval`, a template or a deserialiser without a safe API.
+- Encode output for its context (HTML, SQL, command line, URL). Never pass
+  input to a command interpreter, dynamic code evaluation, a template or a
+  deserialiser without a safe API.
 - Validate redirect targets and outbound URLs against an allowlist (SSRF).
 - File uploads: check type and size, store outside the web root, generate the
   name.

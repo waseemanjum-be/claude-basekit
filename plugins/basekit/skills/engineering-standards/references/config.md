@@ -20,8 +20,9 @@ names, values fixed by a specification, test data inside tests.
 
 1. One module owns configuration: `config.ts`, `settings.py`, `config.go`.
 2. It declares a schema with types, defaults and required keys.
-3. It loads once at startup from the environment (and a file if the project
-   uses one), validates, and exports an immutable object.
+3. It loads once at startup, reads only the keys it declares, by name,
+   validates them, and exports an immutable object. It never copies or passes
+   around the whole environment.
 4. Invalid or missing required config stops startup with one message listing
    every problem, not the first one.
 5. Everything else receives config by import or injection. Nothing else reads
@@ -52,38 +53,51 @@ TypeScript:
 import { z } from "zod";
 
 const Schema = z.object({
-  DATABASE_URL: z.string().url(),
-  HTTP_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+  API_BASE_URL: z.string().url(),
+  REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
   PAYMENTS_RETRY_MAX: z.coerce.number().int().min(0).default(3),
-  CHECKOUT_V2_ENABLED: z.coerce.boolean().default(false),
+  // z.coerce.boolean() would turn the string "false" into true.
+  CHECKOUT_V2_ENABLED: z.enum(["true", "false"]).default("false").transform((v) => v === "true"),
 });
 
-const parsed = Schema.safeParse(process.env);
-if (!parsed.success) {
-  throw new Error(`Invalid configuration: ${parsed.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; ")}`);
+type Source = Record<string, string | undefined>;
+
+// The entry point calls this once with the runtime's variables. Taking them as
+// an argument keeps the module testable and limits it to the keys named here.
+export function loadConfig(source: Source) {
+  const parsed = Schema.safeParse({
+    API_BASE_URL: source.API_BASE_URL,
+    REQUEST_TIMEOUT_MS: source.REQUEST_TIMEOUT_MS,
+    PAYMENTS_RETRY_MAX: source.PAYMENTS_RETRY_MAX,
+    CHECKOUT_V2_ENABLED: source.CHECKOUT_V2_ENABLED,
+  });
+  if (!parsed.success) {
+    const problems = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
+    throw new Error(`Invalid configuration: ${problems.join("; ")}`);
+  }
+  return Object.freeze(parsed.data);
 }
-export const config = Object.freeze(parsed.data);
 ```
 
 Python:
 
 ```python
 # settings.py
-from pydantic import PostgresDsn
+from pydantic import AnyUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", frozen=True)
-    database_url: PostgresDsn
-    http_timeout_s: float = 10.0
+    model_config = SettingsConfigDict(frozen=True)
+    api_base_url: AnyUrl
+    request_timeout_s: float = 10.0
     payments_retry_max: int = 3
     checkout_v2_enabled: bool = False
 
-settings = Settings()  # raises with every invalid field listed
+settings = Settings()  # reads only these fields; raises with every invalid one listed
 ```
 
-Go: a struct populated once in `main`, validated, and passed down. No package
-level `os.Getenv` calls outside the config package.
+Go: a struct populated once in `main`, validated, and passed down. No lookups
+of runtime variables outside the config package.
 
 ## When the owner asks for something quick
 

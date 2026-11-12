@@ -1,7 +1,7 @@
 {
   "name": "basekit",
   "displayName": "Basekit",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Engineering and UI standards that Claude applies unprompted, two builder agents and three read-only reviewers (code, tests, security), with a one-command review.",
   "author": {
     "name": "Waseem"

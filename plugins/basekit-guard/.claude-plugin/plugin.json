@@ -1,7 +1,7 @@
 {
   "name": "basekit-guard",
   "displayName": "Basekit Guard",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Hooks that make Basekit automatic: secret guard, review gate on commits, hardcoded-value notes, decisions-report check, house rules at session start, and a vetted-plugin registry with a daily check.",
   "author": {
     "name": "Waseem"

@@ -22,8 +22,8 @@ locations, model names, feature switches and third-party identifiers.
 
 - One typed config module per service. Load and validate at startup. Fail fast
   with a message naming the missing or invalid key.
-- Code reads config through that module. No `process.env` / `os.environ`
-  lookups scattered through the code.
+- Code reads config through that module. No environment lookups scattered
+  through the code, and the module reads only the keys it declares.
 - Every key has a documented default or is marked required. Update
   `.env.example` and the config docs in the same change.
 - A literal that should stay in code gets a comment on or above the line:

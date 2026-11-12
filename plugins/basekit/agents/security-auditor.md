@@ -32,8 +32,9 @@ commands, webhooks, scheduled jobs) and work inward.
 
 For each entry point touched, trace input to sink:
 
-- **Injection**: SQL/NoSQL built from input, shell commands, `eval`, template
-  injection, header and log injection.
+- **Injection**: SQL/NoSQL built from input, operating-system commands built
+  from input, dynamic code evaluation, template injection, header and log
+  injection.
 - **Authentication and session**: missing checks, weak token handling,
   secrets in JWTs, no expiry, missing CSRF protection on cookie sessions.
 - **Authorisation**: object-level checks (can user A read user B's record by
@@ -58,9 +59,10 @@ For each entry point touched, trace input to sink:
 
 - Debug modes, default credentials, permissive CORS, public buckets, broad IAM
   or database roles, containers running as root.
-- New or changed dependencies: unknown package, typo-like name, install
-  script, alternate registry or index URL, unpinned git dependency. Run the
-  ecosystem audit command if the project has one.
+- New or changed dependencies: unknown package, typo-like name, code that
+  runs at install time, a package source other than the default registry, an
+  unpinned git dependency. Use the ecosystem's audit command if the project
+  has one.
 - CI workflows: secrets exposed to untrusted pull requests, unpinned
   third-party actions with write permissions.
 
