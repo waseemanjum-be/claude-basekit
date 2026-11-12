@@ -13,8 +13,9 @@
  *
  * What it does, in order:
  *   1. validates this kit with `claude plugin validate`
- *   2. registers this folder as a local marketplace and installs the basekit plugin
- *   3. installs the "core" plugins from registry.json, each from the vetted source
+ *   2. registers this folder as a local marketplace and installs its two plugins:
+ *      basekit (standards, agents, review) and basekit-guard (hooks, registry)
+ *   3. installs the "core" third-party plugins from registry.json, each from the vetted source
  *   4. writes the house-rules block into your user CLAUDE.md, between markers
  * It never pipes anything to a shell and installs only through `claude plugin`.
  */
@@ -26,10 +27,12 @@ const readline = require('readline');
 const { spawnSync } = require('child_process');
 
 const KIT = __dirname;
-const PLUGIN_DIR = path.join(KIT, 'plugins', 'basekit');
-const MARKETPLACE = require(path.join(KIT, '.claude-plugin', 'marketplace.json')).name;
-const PLUGIN = require(path.join(PLUGIN_DIR, '.claude-plugin', 'plugin.json')).name;
-const REGISTRY = require(path.join(PLUGIN_DIR, 'registry.json'));
+const MARKET = require(path.join(KIT, '.claude-plugin', 'marketplace.json'));
+const MARKETPLACE = MARKET.name;
+// Install order follows the marketplace file: the standards plugin, then the hooks plugin that depends on it.
+const PLUGINS = MARKET.plugins.map((p) => ({ name: p.name, dir: path.join(KIT, p.source) }));
+const GUARD_DIR = PLUGINS[PLUGINS.length - 1].dir;
+const REGISTRY = require(path.join(GUARD_DIR, 'registry.json'));
 const RULES_START = '<!-- basekit:start (managed by setup.js; edits inside are overwritten) -->';
 const RULES_END = '<!-- basekit:end -->';
 const MIN_NODE_MAJOR = 18; // hardcoded: oldest Node line the scripts' syntax and APIs were written for
@@ -105,7 +108,7 @@ function userClaudeMd() {
 }
 
 function rulesBlock() {
-  const body = fs.readFileSync(path.join(PLUGIN_DIR, 'user-rules.md'), 'utf8').trim();
+  const body = fs.readFileSync(path.join(GUARD_DIR, 'user-rules.md'), 'utf8').trim();
   return `${RULES_START}\n${body}\n${RULES_END}`;
 }
 
@@ -134,7 +137,7 @@ function writeRules(remove = false) {
 
 async function uninstall() {
   log('Removing Basekit');
-  run(['plugin', 'uninstall', `${PLUGIN}@${MARKETPLACE}`]);
+  for (const p of [...PLUGINS].reverse()) run(['plugin', 'uninstall', `${p.name}@${MARKETPLACE}`]);
   run(['plugin', 'marketplace', 'remove', MARKETPLACE]);
   log(`  rules: ${writeRules(true)}`);
   log('\nPlugins that setup installed from other marketplaces were left in place.');
@@ -157,12 +160,12 @@ async function main() {
   if (flags.has('--uninstall')) return uninstall();
 
   log('\n1. Validate the kit');
-  if (!run(['plugin', 'validate', KIT]) || !run(['plugin', 'validate', PLUGIN_DIR])) {
+  if (!run(['plugin', 'validate', KIT]) || !PLUGINS.every((p) => run(['plugin', 'validate', p.dir]))) {
     console.error('Validation failed. Nothing was installed.');
     process.exit(1);
   }
 
-  log('\n2. Register this folder as a marketplace and install Basekit');
+  log('\n2. Register this folder as a marketplace and install its plugins');
   const before = inventory(); // read-only, so it also runs in a dry run
   const haveMarket =
     before.available.some((p) => p.marketplaceName === MARKETPLACE) ||
@@ -172,11 +175,14 @@ async function main() {
     console.error('Could not add the marketplace.');
     process.exit(1);
   }
-  if (before.installed.some((p) => p.id === `${PLUGIN}@${MARKETPLACE}`)) {
-    log('  basekit is already installed (it loads from this folder, so edits here apply after /reload-plugins).');
-  } else if (!run(['plugin', 'install', `${PLUGIN}@${MARKETPLACE}`, '--scope', 'user'])) {
-    console.error('Could not install the basekit plugin.');
-    process.exit(1);
+  for (const p of PLUGINS) {
+    const id = `${p.name}@${MARKETPLACE}`;
+    if (before.installed.some((i) => i.id === id)) {
+      log(`  ${p.name} is already installed (it loads from this folder, so edits here apply after /reload-plugins).`);
+    } else if (!run(['plugin', 'install', id, '--scope', 'user'])) {
+      console.error(`Could not install ${id}.`);
+      process.exit(1);
+    }
   }
 
   if (!flags.has('--no-plugins')) {
@@ -221,7 +227,7 @@ async function main() {
   log('  - Start a new Claude Code session. The toolkit check runs at most once a day.');
   log('  - In a project: /basekit:init');
   log('  - Before a commit: /basekit:review');
-  log('  - Anytime: /basekit:status   Monthly, or when the check suggests it: /basekit:scout');
+  log('  - Anytime: /basekit-guard:status   Monthly, or when the check suggests it: /basekit-guard:scout');
   log('  - Optional tools and the reasoning behind every verdict: docs/VETTING.md');
 }
 

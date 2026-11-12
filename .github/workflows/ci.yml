@@ -37,6 +37,7 @@ jobs:
       - name: Validate marketplace and plugin
         run: |
           claude plugin validate .
-          claude plugin validate plugins/basekit
+          claude plugin validate plugins/basekit --profile directory
+          claude plugin validate plugins/basekit-guard
       - name: The kit passes its own vetting scan
-        run: node plugins/basekit/scripts/vet-plugin.js . --strict
+        run: node plugins/basekit-guard/scripts/vet-plugin.js . --strict

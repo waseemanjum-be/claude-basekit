@@ -15,7 +15,8 @@ const assert = require('assert');
 const { spawnSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
-const PLUGIN = path.join(ROOT, 'plugins', 'basekit');
+const CORE = path.join(ROOT, 'plugins', 'basekit'); // standards, agents, review: what the plugin directory lists
+const PLUGIN = path.join(ROOT, 'plugins', 'basekit-guard'); // hooks, scripts, registry
 const SCRIPTS = path.join(PLUGIN, 'scripts');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'basekit-test-'));
 const DATA = path.join(TMP, 'data');
@@ -78,10 +79,9 @@ test('every JSON file parses', () => {
 });
 
 test('every skill and agent has name and description frontmatter', () => {
-  const files = fs
-    .readdirSync(path.join(PLUGIN, 'skills'))
-    .map((d) => path.join(PLUGIN, 'skills', d, 'SKILL.md'))
-    .concat(fs.readdirSync(path.join(PLUGIN, 'agents')).map((f) => path.join(PLUGIN, 'agents', f)));
+  const files = [CORE, PLUGIN]
+    .flatMap((p) => fs.readdirSync(path.join(p, 'skills')).map((d) => path.join(p, 'skills', d, 'SKILL.md')))
+    .concat(fs.readdirSync(path.join(CORE, 'agents')).map((f) => path.join(CORE, 'agents', f)));
   for (const f of files) {
     const fm = /^---\n([\s\S]*?)\n---\n/.exec(fs.readFileSync(f, 'utf8'));
     assert.ok(fm, `no frontmatter: ${f}`);
@@ -100,6 +100,21 @@ test('hook commands point at scripts that exist', () => {
       }
     }
   }
+});
+
+test('the directory-listed plugin ships instructions only', () => {
+  // Anthropic's plugin directory holds hook commands, scripts, pre-approved tools and
+  // unlisted frontmatter keys for review unless the publisher is a Verified organization.
+  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
+  const all = walk(CORE);
+  for (const f of all) assert.match(f, /\.(md|png)$|plugin\.json$/, `not an instruction file: ${f}`);
+  for (const dir of ['hooks', 'scripts', 'bin']) assert.ok(!fs.existsSync(path.join(CORE, dir)), `${dir}/ must live in basekit-guard`);
+  for (const f of all.filter((n) => n.endsWith('.md'))) {
+    const fm = /^---\n([\s\S]*?)\n---\n/.exec(fs.readFileSync(f, 'utf8'));
+    if (!fm) continue;
+    assert.doesNotMatch(fm[1], /^(allowed-tools|hooks|mcpServers|skills|permissionMode):/m, `frontmatter key held for review: ${f}`);
+  }
+  assert.ok(fs.existsSync(path.join(CORE, '.claude-plugin', 'icon.png')), 'directory listing needs an icon');
 });
 
 test('registry entries are complete and tiers are known', () => {

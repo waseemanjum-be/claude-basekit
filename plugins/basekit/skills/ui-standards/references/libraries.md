@@ -28,7 +28,7 @@ current version and API from documentation before use.
 ## Tools Claude can use for UI work
 
 - `frontend-design` skill (Anthropic): design direction.
-- shadcn skill (`npx skills add shadcn/ui`): project-aware component adds.
+- shadcn's own skill (see the Skills page of the shadcn/ui docs): project-aware component adds.
 - context7: current docs for any library above.
 - Playwright CLI or the Playwright plugin: open, click, screenshot.
 - Figma plugin: read frames, components and tokens when designs are in Figma.

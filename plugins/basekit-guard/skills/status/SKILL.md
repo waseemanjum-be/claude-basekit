@@ -3,10 +3,9 @@ name: status
 description: Show vetted plugins installed, their token cost, unvetted ones, and what is new.
 argument-hint: "[refresh]"
 disable-model-invocation: true
-allowed-tools: Bash(node *session-scan.js *), Bash(claude plugin marketplace update*), Bash(claude plugin list*)
 ---
 
-# /basekit:status
+# /basekit-guard:status
 
 Arguments: `$ARGUMENTS`
 
@@ -27,8 +26,8 @@ Arguments: `$ARGUMENTS`
    - anything installed with a caution or avoid verdict, with the one-line
      reason from `${CLAUDE_PLUGIN_ROOT}/registry.json`;
    - plugins that are installed but not in the registry: suggest
-     `/basekit:scout <name>` to vet them;
-   - a registry older than its review interval: suggest `/basekit:scout`.
+     `/basekit-guard:scout <name>` to vet them;
+   - a registry older than its review interval: suggest `/basekit-guard:scout`.
 5. Do not install, update or remove anything from this command.
 
 For the real per-plugin token cost of anything installed, the owner can run

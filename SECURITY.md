@@ -18,8 +18,9 @@ Worth reporting:
 
 ## What this kit runs on your machine
 
-Six Node scripts, as Claude Code hooks, with no dependencies and no network
-requests of their own:
+The `basekit` plugin is instructions only: skills and agents. The `basekit-guard`
+plugin runs six Node scripts as Claude Code hooks, with no dependencies and no
+network requests of their own:
 
 | Hook | Script | Reads | Writes |
 | --- | --- | --- | --- |
@@ -39,8 +40,9 @@ your user `CLAUDE.md`, after asking. Nothing here pipes a download to a shell.
 Before installing, you can check all of that yourself:
 
 ```
-node plugins/basekit/scripts/vet-plugin.js .
+node plugins/basekit-guard/scripts/vet-plugin.js .
 claude --plugin-dir plugins/basekit plugin details basekit
+claude --plugin-dir plugins/basekit-guard plugin details basekit-guard
 ```
 
 ## What it does not protect you from

@@ -9,14 +9,15 @@ they solve.
 node tests/run-tests.js
 claude plugin validate .
 claude plugin validate plugins/basekit
-node plugins/basekit/scripts/vet-plugin.js . --strict
+claude plugin validate plugins/basekit-guard
+node plugins/basekit-guard/scripts/vet-plugin.js . --strict
 ```
 
 CI runs the same checks on Linux, macOS and Windows.
 
 ## Changing a verdict in the registry
 
-`plugins/basekit/registry.json` and `docs/VETTING.md` make claims about other
+`plugins/basekit-guard/registry.json` and `docs/VETTING.md` make claims about other
 people's projects, so each change needs evidence:
 
 - link the file, line, release note or issue that supports it;
@@ -32,6 +33,10 @@ issue with a link is enough.
 
 ## Changing rules, skills or agents
 
+- `plugins/basekit` stays instructions only, so it can be listed in Anthropic's
+  plugin directory: no hooks, scripts, `allowed-tools`, or agent `skills:`
+  keys. Anything that runs belongs in `plugins/basekit-guard`. A test enforces
+  this.
 - Skill and agent descriptions are loaded in every session. Keep them short and
   check the cost with `claude --plugin-dir plugins/basekit plugin details basekit`.
 - A rule should be checkable. "Timeouts come from the config module" can be
@@ -45,11 +50,11 @@ issue with a link is enough.
   errors.
 - Never print a secret value. Mask it.
 - New behaviour comes with a test in `tests/run-tests.js`.
-- Defaults live in `plugins/basekit/config.defaults.json`. A literal that stays
+- Defaults live in `plugins/basekit-guard/config.defaults.json`. A literal that stays
   in code gets a `hardcoded: <reason>` comment.
 
 ## Releases
 
-Users who install from the marketplace stay on the version in
-`plugins/basekit/.claude-plugin/plugin.json` until it changes. Bump it when you
-want them to receive an update.
+Users who install from the marketplace stay on the version in each plugin's
+`.claude-plugin/plugin.json` until it changes. Bump both when you want them to
+receive an update.

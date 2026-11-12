@@ -9,7 +9,7 @@
  * nothing, so it adds no tokens. It never installs, updates or removes anything
  * and makes no network request of its own.
  *
- * By hand or from /basekit:status:
+ * By hand or from /basekit-guard:status:
  *   node session-scan.js --force --verbose
  */
 
@@ -60,6 +60,9 @@ function inventory() {
 // synced from the claude.ai account, loaded with --plugin-dir, or found in a skills folder.
 const NOT_A_MARKETPLACE = new Set(['synced', 'inline', 'skills-dir']);
 
+// This kit's own two plugins are not third-party tools to vet.
+const OWN_PLUGINS = new Set([c.setting('core_plugin'), require(path.join(c.PLUGIN_ROOT, '.claude-plugin', 'plugin.json')).name]);
+
 const nameOf = (id) => String(id).split('@')[0].toLowerCase();
 const marketOf = (id) => String(id).split('@')[1] || '';
 
@@ -92,7 +95,7 @@ function analyse(inv, registry, state) {
     .map((p) => `${p.id} (${byName.get(nameOf(p.id)).tier})`);
 
   const unvetted = installed
-    .filter((p) => !byName.has(nameOf(p.id)) && nameOf(p.id) !== 'basekit')
+    .filter((p) => !byName.has(nameOf(p.id)) && !OWN_PLUGINS.has(nameOf(p.id)))
     .map((p) => p.id);
 
   // A vetted name installed from a marketplace other than the vetted one may be
@@ -154,7 +157,7 @@ function summarise(a) {
   if (!parts.length) return '';
   return (
     `Basekit toolkit check: ${parts.join(' ')} ` +
-    'Nothing was installed or changed. /basekit:status shows the full table; /basekit:scout vets new candidates.'
+    'Nothing was installed or changed. /basekit-guard:status shows the full table; /basekit-guard:scout vets new candidates.'
   );
 }
 
@@ -178,7 +181,7 @@ function verboseReport(a, registry, inv) {
   }
   out.push('');
   out.push(`Always-on tokens from installed, enabled, measured plugins: ~${a.knownAlwaysOn}`);
-  out.push('  (Basekit itself is not in that figure: run `claude plugin details basekit` for its current cost.)');
+  out.push('  (Basekit itself is not in that figure: run `claude plugin details basekit` and `claude plugin details basekit-guard`.)');
   out.push(`Core missing: ${a.missingCore.join(', ') || 'none'}`);
   out.push(`Unexpected marketplace: ${a.wrongSource.join(', ') || 'none'}`);
   out.push(`Caution/avoid installed: ${a.flagged.join(', ') || 'none'}`);

@@ -31,10 +31,16 @@ Templates are in `${CLAUDE_SKILL_DIR}/templates/`.
 
 ## 2. Check installed tools
 
-Run `claude plugin list --json` and read `${CLAUDE_PLUGIN_ROOT}/registry.json`.
-Work out which `stack` tier plugins match the languages found, and which
-`optional` entries fit this project (a UI project: Playwright CLI and the
-shadcn skill if `components.json` exists; Figma only if the owner uses it).
+Ask the owner which plugins are installed, or look at `/plugin` output if it
+is already in the conversation. Work out what fits this project:
+
+- the language-server plugin for each language found (TypeScript, Python, Go,
+  Rust and others are in Anthropic's marketplace);
+- for a UI project: a browser tool such as Playwright CLI, shadcn's own skill
+  if `components.json` exists, Figma's plugin only if the owner uses Figma;
+- `basekit-guard`, if it is not installed: it adds the secret guard, the
+  review gate on commits and the vetted-plugin registry
+  (`/basekit-guard:status` lists what the registry recommends).
 
 ## 3. Show the plan
 
@@ -52,9 +58,25 @@ the owner's go-ahead.
    apply, and change each `paths:` list to this repository's real directories.
    These load only when Claude touches matching files, so they cost nothing
    elsewhere.
-3. **`.claude/settings.json`** merged with `templates/settings.json`: deny
-   rules that keep real secret files out of Claude's reads. Adjust the paths to
-   where this project keeps secrets. Keep every existing key.
+3. **`.claude/settings.json`**: merge in deny rules that keep real secret
+   files out of Claude's reads. Adjust the paths to where this project keeps
+   secrets, and keep every existing key:
+
+   ```json
+   {
+     "permissions": {
+       "deny": [
+         "Read(./.env)",
+         "Read(./.env.local)",
+         "Read(./.env.production)",
+         "Read(./.env.*.local)",
+         "Read(./secrets/**)",
+         "Read(./**/*.pem)",
+         "Read(./**/*.key)"
+       ]
+     }
+   }
+   ```
 4. **`REVIEW.md`** from `templates/REVIEW.md`, with the project's own
    priorities and paths to skip.
 5. **`.env.example`**: create if the project reads environment variables and

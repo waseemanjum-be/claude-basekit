@@ -33,32 +33,47 @@ node setup.js
 asks before it acts:
 
 1. validates the kit with `claude plugin validate`;
-2. registers this folder as a local marketplace and installs the `basekit`
-   plugin from it;
+2. registers this folder as a local marketplace and installs its two plugins,
+   `basekit` and `basekit-guard`;
 3. offers the three core plugins: `frontend-design`, `context7`,
    `security-guidance`;
 4. offers a short house-rules block for your user `CLAUDE.md`, between
    markers, with a backup.
 
 `node setup.js --dry-run` prints the plan only. `--yes` accepts everything.
-`--uninstall` removes the plugin and the rules block.
+`--uninstall` removes both plugins and the rules block.
 
-Keep the cloned folder: the plugin loads from it in place, so your edits to
+Keep the cloned folder: the plugins load from it in place, so your edits to
 the rules and the registry apply after `/reload-plugins`.
 
-**Plugin only.** Inside a Claude Code session:
+**Without cloning.** Inside a Claude Code session:
 
 ```
 /plugin marketplace add waseemanjum-be/claude-basekit
-/plugin install basekit@basekit-marketplace
+/plugin install basekit-guard@basekit-marketplace
 ```
 
-This gives you the skills, agents, hooks and commands, and the plugin supplies
-the house rules itself at session start. It skips the three core plugins, and
-because the plugin then runs from Claude Code's cache, `/basekit:scout` and
-`/basekit:learn` cannot save changes to it.
+That installs both plugins, and the hooks supply the house rules themselves at
+session start. It skips the three third-party core plugins, and because the
+plugins then run from Claude Code's cache, `/basekit-guard:scout` and
+`/basekit:learn` cannot save changes to them.
+
+## Two plugins
+
+| Plugin | Contains | Where to get it |
+| --- | --- | --- |
+| `basekit` | The standards skills, the five agents, `/basekit:review`, `/basekit:init`, `/basekit:learn`. Instructions only | This repository's marketplace, and Anthropic's plugin directory once listed |
+| `basekit-guard` | The hooks and their scripts, the vetted registry, `/basekit-guard:status`, `/basekit-guard:scout`. Depends on `basekit` | This repository's marketplace only |
+
+They are separate because Anthropic's plugin directory holds plugins that run
+hook commands or ship scripts for review unless the publisher is a Verified
+organization. `basekit` alone gives Claude the standards and the reviewers;
+`basekit-guard` is what makes them apply without being asked.
 
 ## What runs without being asked
+
+This is what `basekit-guard` adds. With `basekit` alone, Claude still has the
+standards and the reviewers, but nothing enforces them.
 
 | When | What happens | Switch |
 | --- | --- | --- |
@@ -85,8 +100,8 @@ runs one, and `BASEKIT_REVIEW_ON_COMMIT=remind` or `off` relaxes the gate.
 | New repository | `/basekit:init` records its commands, layout and conventions |
 | A review outside a commit | `/basekit:review` (add `quick` for one reviewer, `fix` to apply the must-fix items) |
 | You corrected Claude | `/basekit:learn` turns the correction into a rule |
-| What is installed, what does it cost | `/basekit:status` |
-| Looking for new tools | `/basekit:scout`, or `/basekit:scout <name>` to vet one |
+| What is installed, what does it cost | `/basekit-guard:status` |
+| Looking for new tools | `/basekit-guard:scout`, or `/basekit-guard:scout <name>` to vet one |
 
 To call an agent directly: `@agent-basekit:code-reviewer look at the auth changes`.
 
@@ -99,7 +114,7 @@ name installed from an unexpected marketplace, or new plugins in the areas
 this kit covers. Otherwise it prints nothing and costs nothing. It never
 installs, updates or removes anything.
 
-Finding new tools on the web and judging them is `/basekit:scout`. It reads
+Finding new tools on the web and judging them is `/basekit-guard:scout`. It reads
 each candidate's source without running it and records a verdict only when you
 approve. `docs/VETTING.md` explains why this is not automatic.
 
@@ -107,7 +122,8 @@ approve. `docs/VETTING.md` explains why this is not automatic.
 
 | Piece | Always-on tokens |
 | --- | --- |
-| `basekit` plugin (7 skills, 5 agents) | ~600 |
+| `basekit` (5 skills, 5 agents) | ~530 |
+| `basekit-guard` (2 commands, hooks) | ~85 |
 | House rules (your `CLAUDE.md` block, or supplied by the plugin) | ~440 |
 | `frontend-design` | ~80 |
 | `context7`, `security-guidance`, language servers | 0 |
@@ -134,7 +150,7 @@ tokens actually went.
 
 ## Settings
 
-Defaults are in `plugins/basekit/config.defaults.json`. Override with
+Defaults are in `plugins/basekit-guard/config.defaults.json`. Override with
 `BASEKIT_<KEY>` environment variables, per user or per project:
 
 | Variable | Default | Meaning |
@@ -163,24 +179,26 @@ claude-basekit/
   setup.js  install.sh  install.ps1
   docs/VETTING.md               verdicts and evidence
   tests/run-tests.js            node tests/run-tests.js
-  plugins/basekit/
-    registry.json               vetted tools (machine-readable)
-    config.defaults.json        every default in one place
-    user-rules.md               the block setup writes to your CLAUDE.md
+  plugins/basekit/              instructions only
     agents/                     5 agents
-    skills/                     2 standards skills, 5 commands, templates
+    skills/                     2 standards skills, review, init, learn
+  plugins/basekit-guard/        automation
     hooks/hooks.json            hooks on 5 events
     scripts/                    session-rules, session-scan, secret-guard, review-gate,
                                 config-lint, report-check, vet-plugin
+    registry.json               vetted tools (machine-readable)
+    config.defaults.json        every default in one place
+    user-rules.md               the house rules
+    skills/                     status, scout
 ```
 
 ## Changing it
 
 Edit the files here, then `/reload-plugins` in a session. Run
-`node tests/run-tests.js` and `claude plugin validate plugins/basekit` after
-changing scripts or frontmatter. The rules are yours: tighten wording in the
+`node tests/run-tests.js` and `claude plugin validate` on both plugin folders
+after changing scripts or frontmatter. The rules are yours: tighten wording in the
 skills, add project patterns with `/basekit:learn`, change verdicts through
-`/basekit:scout`.
+`/basekit-guard:scout`.
 
 ## About the verdicts
 

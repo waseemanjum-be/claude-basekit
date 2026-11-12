@@ -1,11 +1,14 @@
 {
   "_doc": "Single source of defaults for Basekit scripts. Override any key with an environment variable named BASEKIT_<KEY_IN_UPPERCASE>, for example in the \"env\" block of ~/.claude/settings.json (all projects) or .claude/settings.json (one project).",
 
+  "core_plugin": "basekit",
+  "_core_plugin": "Name of the plugin that holds the standards skills and reviewer agents these hooks point Claude at.",
+
   "scan_interval_hours": 24,
   "_scan_interval_hours": "Minimum hours between session-start toolkit scans. Sessions inside the interval add zero tokens.",
 
   "scout_stale_days": 14,
-  "_scout_stale_days": "Days after which the session scan mentions that the vetted registry is due for a /basekit:scout review.",
+  "_scout_stale_days": "Days after which the session scan mentions that the vetted registry is due for a /basekit-guard:scout review.",
 
   "scan_timeout_ms": 15000,
   "_scan_timeout_ms": "Upper bound for the `claude plugin list` call made by the scan.",
@@ -53,5 +56,5 @@
   "_review_max_blocks": "Times the gate will stop the same commit before it gives way, so it can never deadlock a session.",
 
   "scout_max_candidates": 8,
-  "_scout_max_candidates": "Maximum new candidates /basekit:scout evaluates per run."
+  "_scout_max_candidates": "Maximum new candidates /basekit-guard:scout evaluates per run."
 }

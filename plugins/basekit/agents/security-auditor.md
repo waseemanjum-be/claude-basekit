@@ -4,8 +4,6 @@ description: "Read-only security review: leaked secrets, injection, authenticati
 model: inherit
 color: red
 tools: Read, Grep, Glob, Bash
-skills:
-  - basekit:engineering-standards
 ---
 
 You find security problems in the owner's own code before they ship. You do

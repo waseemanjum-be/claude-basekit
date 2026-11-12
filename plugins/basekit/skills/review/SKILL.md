@@ -1,7 +1,7 @@
 ---
 name: review
 description: Review current changes with the code, test and security specialists and merge the results. Use before committing code changes, and when the commit gate asks for a review.
-argument-hint: "[scope: staged | <base-branch> | <path> | pr <number>] [quick] [fix]"
+argument-hint: "[scope: staged | <base-branch> | <path>] [quick] [fix]"
 ---
 
 # /basekit:review
@@ -16,7 +16,7 @@ Review scope and options from the user: `$ARGUMENTS`
 - `staged`: only `git diff --staged`.
 - A branch name: `git diff <branch>...HEAD`.
 - A path: those files as they are now.
-- `pr <number>`: `gh pr diff <number>` if the GitHub CLI is available.
+- A pull request: check out its branch first, then use the branch form.
 
 State the scope in one line. If the diff is empty, say so and stop.
 

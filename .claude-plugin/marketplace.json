@@ -8,7 +8,13 @@
     {
       "name": "basekit",
       "source": "./plugins/basekit",
-      "description": "Engineering standards, UI/backend/review agents, secret guard, config lint, and a vetted-plugin registry with a session-start scan.",
+      "description": "Engineering and UI standards that Claude applies unprompted, two builder agents and three read-only reviewers (code, tests, security), with a one-command review.",
+      "category": "development"
+    },
+    {
+      "name": "basekit-guard",
+      "source": "./plugins/basekit-guard",
+      "description": "Hooks that make Basekit automatic: secret guard, review gate on commits, hardcoded-value notes, decisions-report check, house rules at session start, and a vetted-plugin registry with a daily check.",
       "category": "development"
     }
   ]

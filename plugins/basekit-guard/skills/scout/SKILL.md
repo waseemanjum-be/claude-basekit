@@ -5,7 +5,7 @@ argument-hint: "[name or repo to vet | area: ui | backend | review | tokens]"
 disable-model-invocation: true
 ---
 
-# /basekit:scout
+# /basekit-guard:scout
 
 Request: `$ARGUMENTS`
 

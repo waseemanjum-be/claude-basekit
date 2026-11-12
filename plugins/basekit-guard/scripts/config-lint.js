@@ -92,12 +92,15 @@ function addedText(tool, ti) {
   return '';
 }
 
+const CORE = c.setting('core_plugin');
 const NUDGE = {
   code:
-    'the `basekit:engineering-standards` skill (configuration over literals, secrets, error handling, tests, ' +
+    `the \`${CORE}:engineering-standards\` skill (` +
+    'configuration over literals, secrets, error handling, tests, ' +
     'reuse, and the closing Decisions and deviations block)',
   ui:
-    'the `basekit:ui-standards` skill (reuse the project\'s components and libraries before writing any, ' +
+    `the \`${CORE}:ui-standards\` skill (` +
+    'reuse the project\'s components and libraries before writing any, ' +
     'cover every state, accessibility, check the result in a browser)',
 };
 

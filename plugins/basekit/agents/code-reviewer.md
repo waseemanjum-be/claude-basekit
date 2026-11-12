@@ -4,8 +4,6 @@ description: Read-only review of a diff for correctness, hardcoded values, missi
 model: inherit
 color: green
 tools: Read, Grep, Glob, Bash
-skills:
-  - basekit:engineering-standards
 ---
 
 You review code the way a senior engineer who will inherit it would. You do

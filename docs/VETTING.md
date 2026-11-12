@@ -1,7 +1,7 @@
 # Vetting record
 
-Reviewed 2026-11-12 against Claude Code 2.1.322. `plugins/basekit/registry.json`
-is the machine-readable version of this page; `/basekit:scout` keeps both
+Reviewed 2026-11-12 against Claude Code 2.1.322. `plugins/basekit-guard/registry.json`
+is the machine-readable version of this page; `/basekit-guard:scout` keeps both
 current.
 
 ## Method and limits
@@ -235,13 +235,13 @@ from the web. The kit splits that in two on purpose.
   available plugins against the registry. About one second, no network request
   of its own, zero tokens when there is nothing to report. It reads Claude
   Code's marketplace catalogues, which Claude Code refreshes itself.
-- **On demand (`/basekit:scout`):** web discovery plus a read of each
+- **On demand (`/basekit-guard:scout`):** web discovery plus a read of each
   candidate's source, ending in a recommendation you approve.
 
 A web search in every session would cost tokens in every session, and
 installing unreviewed code automatically is the one behaviour this whole
 exercise argues against. If you want discovery on a schedule, run
-`/basekit:scout` as a weekly scheduled task and read its report.
+`/basekit-guard:scout` as a weekly scheduled task and read its report.
 
 ## Not verified
 

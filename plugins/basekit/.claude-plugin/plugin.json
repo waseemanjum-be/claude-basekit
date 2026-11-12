@@ -1,8 +1,8 @@
 {
   "name": "basekit",
   "displayName": "Basekit",
-  "version": "1.1.0",
-  "description": "Starter kit for every project: engineering standards, UI/backend/review agents, secret guard, config lint, and a vetted-plugin registry with a session-start scan.",
+  "version": "1.2.0",
+  "description": "Engineering and UI standards that Claude applies unprompted, two builder agents and three read-only reviewers (code, tests, security), with a one-command review.",
   "author": {
     "name": "Waseem"
   },
@@ -15,6 +15,6 @@
     "security",
     "ui",
     "backend",
-    "starter-kit"
+    "testing"
   ]
 }

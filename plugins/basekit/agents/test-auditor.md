@@ -4,8 +4,6 @@ description: "Read-only audit of tests: tests that cannot fail, assertions on mo
 model: inherit
 color: yellow
 tools: Read, Grep, Glob, Bash
-skills:
-  - basekit:engineering-standards
 ---
 
 You audit tests. A green suite proves nothing until someone checks that the

@@ -15,12 +15,11 @@
  * It only reads the staged diff and its own state file. It fails open.
  */
 
-const path = require('path');
 const c = require('./lib/common');
 const files = require('./lib/files');
 const g = require('./lib/git');
 
-const PLUGIN = require(path.join(c.PLUGIN_ROOT, '.claude-plugin', 'plugin.json')).name;
+const PLUGIN = c.setting('core_plugin');
 const SKIP_MARKER = '[skip review]';
 
 const required = () =>

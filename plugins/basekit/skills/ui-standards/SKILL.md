@@ -18,8 +18,8 @@ Stop at the first rung that fits, and say which rung you used.
    Read `components.json`, the design-system package, `tailwind.config`, theme
    files and a neighbouring page before creating anything.
 2. **The project's component library**, through its own tooling. With
-   shadcn/ui, add components with the CLI (`npx shadcn@latest add <name>`) and
-   compose them; never paste a lookalike. With MUI, Mantine, Chakra, Ant or a
+   shadcn/ui, add components with the shadcn CLI's `add` command and compose
+   them; never paste a lookalike. With MUI, Mantine, Chakra, Ant or a
    company system, use its components and theme API.
 3. **Headless primitives** for behaviour (focus traps, roving tabindex,
    dismissal, positioning): Radix, Base UI, React Aria, Headless UI, Ark.

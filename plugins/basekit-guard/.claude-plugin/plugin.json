@@ -1,0 +1,22 @@
+{
+  "name": "basekit-guard",
+  "displayName": "Basekit Guard",
+  "version": "1.2.0",
+  "description": "Hooks that make Basekit automatic: secret guard, review gate on commits, hardcoded-value notes, decisions-report check, house rules at session start, and a vetted-plugin registry with a daily check.",
+  "author": {
+    "name": "Waseem"
+  },
+  "homepage": "https://github.com/waseemanjum-be/claude-basekit",
+  "repository": "https://github.com/waseemanjum-be/claude-basekit",
+  "license": "MIT",
+  "keywords": [
+    "hooks",
+    "secrets",
+    "code-review",
+    "automation",
+    "registry"
+  ],
+  "dependencies": [
+    "basekit"
+  ]
+}
