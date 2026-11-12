@@ -20,7 +20,10 @@ These apply in every project. A project's own CLAUDE.md and rules override them.
 - **End implementation work with "Decisions and deviations"**: config added,
   values kept hardcoded and why, what is not configurable and why, trade-offs,
   debt introduced, what was verified and what was not.
+- **Review before committing code.** Run the `basekit:review` skill on the
+  changes first. Commit only when it has no must-fix findings; otherwise show
+  them to the user.
 
-Detail lives in the Basekit skills `engineering-standards` and `ui-standards`
-(load them for backend or UI work). Use the `backend-engineer` and
-`ui-engineer` agents for larger pieces, and `/basekit:review` before a commit.
+Detail lives in the Basekit skills `engineering-standards` and `ui-standards`:
+load the matching one before backend or UI work. Use the `backend-engineer`
+and `ui-engineer` agents for larger pieces.

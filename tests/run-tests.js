@@ -112,7 +112,7 @@ test('registry entries are complete and tiers are known', () => {
 });
 
 test('scripts contain no invisible characters', () => {
-  for (const f of ['session-scan.js', 'secret-guard.js', 'config-lint.js', 'vet-plugin.js', 'lib/common.js', 'lib/secrets.js']) {
+  for (const f of fs.readdirSync(SCRIPTS).filter((n) => n.endsWith('.js')).concat(fs.readdirSync(path.join(SCRIPTS, 'lib')).map((n) => `lib/${n}`))) {
     assert.doesNotMatch(fs.readFileSync(path.join(SCRIPTS, f), 'utf8'), /[^\x09\x0A\x0D\x20-\x7E]/, f);
   }
 });
@@ -218,15 +218,203 @@ test('stays quiet in tests, config modules and non-source files', () => {
   for (const rel of ['proj/tests/service.test.ts', 'proj/src/config/index.ts', 'proj/README.md']) {
     const file = write(rel, SERVICE);
     const r = hook('config-lint.js', { session_id: 's3', tool_name: 'Write', cwd: path.join(TMP, 'proj'), tool_input: { file_path: file, content: SERVICE } });
-    assert.strictEqual(r.stdout, '', rel);
+    assert.doesNotMatch(context(r), /config lint/, rel);
   }
 });
 
 test('off mode is silent', () => {
   const file = write('proj/src/other.ts', SERVICE);
-  const r = hook('config-lint.js', { session_id: 's4', tool_name: 'Write', cwd: path.join(TMP, 'proj'), tool_input: { file_path: file, content: SERVICE } }, { env: { BASEKIT_CONFIG_LINT: 'off' } });
+  const r = hook('config-lint.js', { session_id: 's4', tool_name: 'Write', cwd: path.join(TMP, 'proj'), tool_input: { file_path: file, content: SERVICE } }, { env: { BASEKIT_CONFIG_LINT: 'off', BASEKIT_STANDARDS_NUDGE: 'off' } });
   assert.strictEqual(r.stdout, '');
 });
+
+// ---------------------------------------------------------- standards nudge
+console.log('Standards nudge');
+
+test('names the matching standards skill once per session and kind', () => {
+  const cwd = path.join(TMP, 'nudge');
+  const edit = (rel) => hook('config-lint.js', { session_id: 'n1', tool_name: 'Write', cwd, tool_input: { file_path: write(`nudge/${rel}`, 'export const a = 1;\n'), content: 'export const a = 1;\n' } });
+  assert.match(context(edit('src/api/users.ts')), /basekit:engineering-standards/);
+  assert.strictEqual(edit('src/api/orders.ts').stdout, '', 'second backend edit is silent');
+  assert.match(context(edit('src/ui/Button.tsx')), /basekit:ui-standards/);
+  assert.strictEqual(edit('src/ui/Card.tsx').stdout, '', 'second UI edit is silent');
+});
+
+// ------------------------------------------------------------- report check
+console.log('Report check');
+
+const BIG = Array.from({ length: 20 }, (_, i) => `export const value${i} = compute(${i});`).join('\n');
+function editSource(session, lines = BIG) {
+  const file = write(`report/${session}/src/feature.ts`, lines);
+  return hook('config-lint.js', { session_id: session, tool_name: 'Write', cwd: path.join(TMP, 'report', session), tool_input: { file_path: file, content: lines } });
+}
+const stop = (session, message, extra = {}, env = {}) => hook('report-check.js', { session_id: session, last_assistant_message: message, ...extra }, { env });
+
+test('sends Claude back when a turn changed source and the reply has no report', () => {
+  editSource('r1');
+  const r = stop('r1', 'Done, the feature is implemented.');
+  assert.strictEqual(r.json.decision, 'block');
+  assert.match(r.json.reason, /Decisions and deviations/);
+  assert.strictEqual(stop('r1', 'Done again.').stdout, '', 'asks once, then the counter is cleared');
+});
+
+test('is satisfied by a reply that contains the block', () => {
+  editSource('r2');
+  assert.strictEqual(stop('r2', 'Implemented.\n\nDecisions and deviations\n- Config added: none').stdout, '');
+});
+
+test('never fires while a stop hook is already continuing the turn', () => {
+  editSource('r3');
+  assert.strictEqual(stop('r3', 'Done.', { stop_hook_active: true }).stdout, '');
+});
+
+test('waits when the reply is a question, then checks the next reply', () => {
+  editSource('r4');
+  assert.strictEqual(stop('r4', 'Should the limit be per user or per team?').stdout, '');
+  assert.strictEqual(stop('r4', 'Done.').json.decision, 'block');
+});
+
+test('leaves small edits and test-only edits alone', () => {
+  editSource('r5', 'export const one = 1;\nexport const two = 2;');
+  assert.strictEqual(stop('r5', 'Done.').stdout, '');
+  const file = write('report/r6/tests/feature.test.ts', BIG);
+  hook('config-lint.js', { session_id: 'r6', tool_name: 'Write', cwd: path.join(TMP, 'report', 'r6'), tool_input: { file_path: file, content: BIG } });
+  assert.strictEqual(stop('r6', 'Done.').stdout, '');
+});
+
+test('off mode is silent', () => {
+  editSource('r7');
+  assert.strictEqual(stop('r7', 'Done.', {}, { BASEKIT_REPORT_CHECK: 'off' }).stdout, '');
+});
+
+// -------------------------------------------------------------- review gate
+console.log('Review gate');
+
+(() => {
+  const repo = path.join(TMP, 'gate');
+  fs.mkdirSync(repo);
+  const git = (...a) => spawnSync('git', a, { cwd: repo, encoding: 'utf8' });
+  if (git('init', '-q').status !== 0) {
+    console.log('  skip  (git not available)');
+    return;
+  }
+  git('config', 'user.email', 'test@example.com');
+  git('config', 'user.name', 'test');
+  fs.writeFileSync(path.join(repo, 'README.md'), '# demo\n');
+  git('add', '-A');
+  git('commit', '-qm', 'base');
+
+  const stage = (rel, text) => {
+    fs.mkdirSync(path.dirname(path.join(repo, rel)), { recursive: true });
+    fs.writeFileSync(path.join(repo, rel), text);
+    git('add', '-A');
+  };
+  const commit = (session, message = 'add feature', env = {}) =>
+    hook('review-gate.js', { session_id: session, tool_name: 'Bash', cwd: repo, tool_input: { command: `git commit -m "${message}"` } }, { args: ['--check'], cwd: repo, env });
+  const reviewed = (session, agent) =>
+    hook('review-gate.js', { session_id: session, cwd: repo, agent_type: agent }, { args: ['--record'], cwd: repo });
+  const reason = (r) => r.json.hookSpecificOutput.permissionDecisionReason;
+
+  test('lets documentation and small changes through', () => {
+    stage('docs/notes.md', BIG);
+    stage('src/tiny.ts', 'export const one = 1;\n');
+    assert.strictEqual(commit('g0').stdout, '');
+  });
+
+  test('stops a code commit until every required reviewer has run', () => {
+    stage('src/feature.ts', BIG);
+    const first = commit('g1');
+    assert.strictEqual(decision(first), 'deny');
+    assert.match(reason(first), /code-reviewer, test-auditor, security-auditor/);
+    assert.match(reason(first), /basekit:review/);
+    reviewed('g1', 'basekit:code-reviewer');
+    reviewed('g1', 'basekit:test-auditor');
+    assert.match(reason(commit('g1')), /have not run in this session since the last commit: security-auditor\./);
+    reviewed('g1', 'basekit:security-auditor');
+    assert.strictEqual(commit('g1').stdout, '');
+  });
+
+  test('ignores agents that are not reviewers, and other sessions', () => {
+    reviewed('g2', 'basekit:backend-engineer');
+    reviewed('g2', 'Explore');
+    assert.strictEqual(decision(commit('g2')), 'deny');
+  });
+
+  test('a commit message with [skip review] passes', () => {
+    assert.strictEqual(commit('g3', 'wip [skip review]').stdout, '');
+  });
+
+  test('remind mode notes it without stopping the commit', () => {
+    const r = commit('g4', 'add feature', { BASEKIT_REVIEW_ON_COMMIT: 'remind' });
+    assert.strictEqual(decision(r), undefined);
+    assert.match(context(r), /review gate/);
+  });
+
+  test('off mode is silent, and a shorter reviewer list is honoured', () => {
+    assert.strictEqual(commit('g5', 'add feature', { BASEKIT_REVIEW_ON_COMMIT: 'off' }).stdout, '');
+    reviewed('g6', 'basekit:code-reviewer');
+    assert.strictEqual(commit('g6', 'add feature', { BASEKIT_REVIEW_AGENTS: 'code-reviewer' }).stdout, '');
+  });
+
+  test('gives way after the configured number of stops', () => {
+    for (let i = 0; i < 3; i++) assert.strictEqual(decision(commit('g7')), 'deny');
+    const last = commit('g7');
+    assert.strictEqual(decision(last), undefined);
+    assert.match(context(last), /review gate/);
+  });
+
+  test('a new commit needs a new review', () => {
+    for (const a of ['code-reviewer', 'test-auditor', 'security-auditor']) reviewed('g8', `basekit:${a}`);
+    assert.strictEqual(commit('g8').stdout, '');
+    git('commit', '-qm', 'feature');
+    stage('src/second.ts', BIG);
+    assert.strictEqual(decision(commit('g8')), 'deny');
+  });
+
+  test('other git commands are not gated', () => {
+    const r = hook('review-gate.js', { session_id: 'g9', tool_name: 'Bash', cwd: repo, tool_input: { command: 'git status' } }, { args: ['--check'], cwd: repo });
+    assert.strictEqual(r.stdout, '');
+  });
+})();
+
+// ------------------------------------------------------------ session rules
+console.log('Session rules');
+
+(() => {
+  const cfg = path.join(TMP, 'claude-config');
+  fs.mkdirSync(cfg);
+  const proj = path.join(TMP, 'fresh-repo');
+  fs.mkdirSync(path.join(proj, '.git'), { recursive: true });
+  const start = (source, env = {}) =>
+    hook('session-rules.js', { source, cwd: proj }, { cwd: proj, env: { CLAUDE_CONFIG_DIR: cfg, CLAUDE_PLUGIN_DATA: path.join(TMP, 'rules-data'), ...env } });
+
+  test('supplies the house rules when the user CLAUDE.md has no Basekit block', () => {
+    const r = start('startup');
+    assert.match(context(r), /House rules \(Basekit\)/);
+    assert.match(context(r), /No unexplained literals/);
+    assert.match(context(start('compact')), /House rules/, 'rules return after compaction');
+  });
+
+  test('tells the user once that the repository has not been initialised', () => {
+    assert.strictEqual(start('startup').json.systemMessage, undefined, 'already hinted by the previous startup');
+    const other = path.join(TMP, 'other-repo');
+    fs.mkdirSync(path.join(other, '.git'), { recursive: true });
+    const r = hook('session-rules.js', { source: 'startup', cwd: other }, { cwd: other, env: { CLAUDE_CONFIG_DIR: cfg, CLAUDE_PLUGIN_DATA: path.join(TMP, 'rules-data') } });
+    assert.match(r.json.systemMessage, /basekit:init/);
+    fs.writeFileSync(path.join(other, 'CLAUDE.md'), '# x\n');
+  });
+
+  test('adds nothing when setup already wrote the block', () => {
+    fs.writeFileSync(path.join(cfg, 'CLAUDE.md'), '# mine\n<!-- basekit:start -->\nrules\n<!-- basekit:end -->\n');
+    fs.writeFileSync(path.join(proj, 'CLAUDE.md'), '# project\n');
+    assert.strictEqual(start('startup').stdout, '');
+  });
+
+  test('off mode supplies nothing', () => {
+    fs.writeFileSync(path.join(cfg, 'CLAUDE.md'), '# mine\n');
+    assert.strictEqual(start('startup', { BASEKIT_INJECT_RULES: 'off', BASEKIT_INIT_HINT: 'off' }).stdout, '');
+  });
+})();
 
 // ------------------------------------------------------------- session scan
 console.log('Session scan');

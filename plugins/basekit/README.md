@@ -1,7 +1,8 @@
 # Basekit plugin
 
-Engineering standards, five agents and three guard hooks for Claude Code, plus
-a registry of vetted third-party tools and a session-start check against it.
+Engineering standards, five agents and a set of hooks that apply them without
+being asked, plus a registry of vetted third-party tools and a session-start
+check against it.
 
 Install with `node setup.js` from a clone of the repository (see the README
 at its root), or inside a Claude Code session:
@@ -24,9 +25,12 @@ at its root), or inside a Claude Code session:
 | `/basekit:status` | Vetted tools installed, token cost, unvetted installs, what is new. |
 | `/basekit:scout` | Finds and vets new tools from source; updates the registry on approval. |
 | `/basekit:learn` | Turns a session's corrections into standing rules. |
+| Hook: session rules | Supplies the house rules at session start when your `CLAUDE.md` has no Basekit block. |
 | Hook: session scan | Once a day at most, compares installed and available plugins with `registry.json`. |
 | Hook: secret guard | Blocks writes and commits that contain credential-shaped strings. |
-| Hook: config lint | After an edit, notes literals that look like configuration. Advisory. |
+| Hook: edit notes | After an edit, notes literals that look like configuration and names the matching standards skill. Advisory. |
+| Hook: review gate | Stops a code commit until the reviewers have run in the session. |
+| Hook: report check | Sends Claude back once when a turn added code and the reply has no decisions report. |
 
 ## Settings
 

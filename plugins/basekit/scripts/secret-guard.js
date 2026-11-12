@@ -17,6 +17,7 @@
 const { spawnSync } = require('child_process');
 const c = require('./lib/common');
 const { scan } = require('./lib/secrets');
+const { isCommit, addedLines } = require('./lib/git');
 
 const STAGED = process.argv.includes('--staged');
 const MAX_REPORTED = 6; // hardcoded: keeps the message to Claude short; the rest is counted, not listed
@@ -28,33 +29,6 @@ function textFromToolInput(tool, input) {
   if (tool === 'MultiEdit') return (input.edits || []).map((e) => e.new_string || '').join('\n');
   if (tool === 'NotebookEdit') return input.new_source || '';
   return '';
-}
-
-function git(args, cwd) {
-  // hardcoded: output ceiling for one diff; a larger diff returns '' and the guard fails open
-  const r = spawnSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, windowsHide: true });
-  return r.status === 0 ? r.stdout : '';
-}
-
-/** Lines a commit would add, as [{ file, line, text }]. */
-function addedLines(command, cwd) {
-  // `git commit -a` also commits unstaged changes to tracked files.
-  const all = /\s-(?:[a-zA-Z]*a[a-zA-Z]*|-all)\b/.test(command);
-  const diff = git(['diff', all ? 'HEAD' : '--cached', '-U0', '--no-color', '--no-ext-diff'], cwd);
-  const out = [];
-  let file = '';
-  let lineNo = 0;
-  for (const raw of diff.split('\n')) {
-    if (raw.startsWith('+++ ')) {
-      file = raw.slice(4).replace(/^b\//, '');
-    } else if (raw.startsWith('@@')) {
-      const m = /\+(\d+)/.exec(raw);
-      lineNo = m ? Number(m[1]) : 0;
-    } else if (raw.startsWith('+')) {
-      out.push({ file, line: lineNo++, text: raw.slice(1) });
-    }
-  }
-  return out;
 }
 
 function gitleaks(cwd) {
@@ -91,7 +65,7 @@ function main() {
 
   if (STAGED) {
     const command = String(ti.command || '');
-    if (!/(^|[\s;&|(])git\b[^;&|]*\bcommit\b/.test(command)) process.exit(0);
+    if (!isCommit(command)) process.exit(0);
     for (const l of addedLines(command, input.cwd || process.cwd())) {
       for (const f of scan(l.text)) findings.push({ ...f, where: `${l.file}:${l.line}` });
     }

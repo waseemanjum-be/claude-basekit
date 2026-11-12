@@ -1,39 +1,25 @@
 #!/usr/bin/env node
 'use strict';
 /*
- * Basekit config lint (PostToolUse hook, advisory only).
+ * Basekit edit notes (PostToolUse hook, advisory only). Three jobs in one process:
  *
- * After an edit to a source file it looks at the lines that edit added and
- * reports literals that usually belong in configuration: URLs, addresses,
- * tunable numbers, fixed feature switches, absolute paths, model names.
- * It never blocks. A line is exempt when it, or the line above it, carries a
- * `hardcoded: <reason>` comment. Each finding is reported once per session.
+ * 1. Config lint. Looks at the lines an edit added to production source and
+ *    reports literals that usually belong in configuration: URLs, addresses,
+ *    tunable numbers, fixed feature switches, absolute paths, model names.
+ *    A line is exempt when it, or the line above it, carries a
+ *    `hardcoded: <reason>` comment. Each finding is reported once per session.
+ * 2. Standards nudge. The first time a session edits backend or UI code, it
+ *    names the standards skill that holds the house rules for it.
+ * 3. Turn accounting. Counts source lines added this turn, which the Stop hook
+ *    (report-check.js) uses to ask for the Decisions and deviations block.
  *
- * Run by hand:  node config-lint.js --file path/to/file
+ * It never blocks.   Run the lint by hand:  node config-lint.js --file path/to/file
  */
 
 const fs = require('fs');
-const path = require('path');
 const c = require('./lib/common');
 
-const SOURCE_EXT = new Set([
-  '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.py', '.go', '.rs', '.java', '.kt',
-  '.rb', '.php', '.cs', '.swift', '.scala', '.vue', '.svelte',
-]);
-
-// Places where literals are expected: tests, fixtures, the config layer itself, generated and vendored code.
-const SKIP_PATH = new RegExp(
-  [
-    '(^|/)(node_modules|vendor|dist|build|out|coverage|\\.next|\\.nuxt|target|__pycache__|migrations?|generated|gen)/',
-    '(^|/)(tests?|__tests__|spec|e2e|fixtures?|mocks?|__mocks__|stories|scripts|examples?|docs?)/',
-    '(^|/)(config|configs|configuration|settings|conf)(/|\\.[a-z]+$)',
-    '\\.(test|spec|stories|config|d)\\.[a-z]+$',
-    '_test\\.(go|py|rb)$',
-    '(^|/)test_[^/]+\\.py$',
-    '(^|/)conftest\\.py$',
-  ].join('|'),
-  'i'
-);
+const files = require('./lib/files');
 
 const COMMENT_LINE = /^\s*(\/\/|#|\*|\/\*|<!--|--\s|"""|''')/;
 const IMPORT_LINE = /^\s*(import\b|from\s+\S+\s+import\b|export\s+.*\bfrom\b|const\s+.*=\s*require\(|require\(|use\s+\S+;|using\s+\S+;|package\s+\S+)/;
@@ -99,26 +85,21 @@ function lint(filePath, fileText, onlyLines) {
   return findings;
 }
 
-function addedLineSet(tool, ti) {
-  let text = '';
-  if (tool === 'Edit') text = ti.new_string || '';
-  else if (tool === 'MultiEdit') text = (ti.edits || []).map((e) => e.new_string || '').join('\n');
-  else return null; // Write: the whole file is new
-  return new Set(text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length >= 8));
+function addedText(tool, ti) {
+  if (tool === 'Write') return ti.content || '';
+  if (tool === 'Edit') return ti.new_string || '';
+  if (tool === 'MultiEdit') return (ti.edits || []).map((e) => e.new_string || '').join('\n');
+  return '';
 }
 
-function pruneOldState(dir) {
-  const cutoff = Date.now() - 7 * 86400000;
-  for (const f of fs.readdirSync(dir)) {
-    if (!/^lint-.*\.json$/.test(f)) continue;
-    const full = path.join(dir, f);
-    try {
-      if (fs.statSync(full).mtimeMs < cutoff) fs.unlinkSync(full);
-    } catch {
-      /* another session may have removed it */
-    }
-  }
-}
+const NUDGE = {
+  code:
+    'the `basekit:engineering-standards` skill (configuration over literals, secrets, error handling, tests, ' +
+    'reuse, and the closing Decisions and deviations block)',
+  ui:
+    'the `basekit:ui-standards` skill (reuse the project\'s components and libraries before writing any, ' +
+    'cover every state, accessibility, check the result in a browser)',
+};
 
 function main() {
   const manual = process.argv.indexOf('--file');
@@ -129,48 +110,72 @@ function main() {
     return;
   }
 
-  if (c.setting('config_lint') === 'off') return;
   const input = c.readHookInput();
   const ti = input.tool_input || {};
   const file = ti.file_path;
-  if (!file || !SOURCE_EXT.has(path.extname(file).toLowerCase())) return;
+  const kind = file && files.kind(file);
+  if (!kind) return;
+  const rel = files.relative(file, input.cwd);
+  if (files.GENERATED_PATH.test(rel)) return;
 
-  const rel = path.relative(input.cwd || process.cwd(), file).split(path.sep).join('/');
-  if (SKIP_PATH.test(rel)) return;
+  const session = c.sessionState(input.session_id);
+  const notes = [];
+  let dirty = false;
+  const added = addedText(input.tool_name, ti);
 
-  let text;
-  try {
-    text = fs.readFileSync(file, 'utf8');
-  } catch {
-    return;
+  // 2. Standards nudge, once per session for each kind of code.
+  if (c.setting('standards_nudge') !== 'off') {
+    session.data.nudged = session.data.nudged || {};
+    if (!session.data.nudged[kind]) {
+      session.data.nudged[kind] = true;
+      dirty = true;
+      notes.push(
+        `Basekit: this session is now editing ${kind === 'ui' ? 'UI' : 'backend or shared'} code (${rel}). ` +
+          `The house rules for it are in ${NUDGE[kind]}. Its full text loads with the Skill tool if it is not already in context.`
+      );
+    }
   }
-  let findings = lint(rel, text, addedLineSet(input.tool_name, ti));
-  if (!findings.length) return;
 
-  // Report each finding once per session.
-  const dir = c.dataDir();
-  const stateFile = path.join(dir, `lint-${String(input.session_id || 'manual').replace(/[^A-Za-z0-9_-]/g, '')}.json`);
-  const firstWrite = !fs.existsSync(stateFile);
-  const seen = new Set(c.readJson(stateFile, []));
-  findings = findings.filter((f) => !seen.has(f.key));
-  if (!findings.length) return;
-  findings.forEach((f) => seen.add(f.key));
-  c.writeJson(stateFile, [...seen]);
-  if (firstWrite) pruneOldState(dir);
+  if (files.isProductionSource(rel)) {
+    // 3. Turn accounting for the report check.
+    const turn = session.data.turn || { lines: 0, files: [] };
+    turn.lines += added.split(/\r?\n/).filter((l) => l.trim()).length;
+    if (!turn.files.includes(rel)) turn.files.push(rel);
+    session.data.turn = turn;
+    dirty = true;
 
-  const max = c.setting('config_lint_max_findings');
-  const shown = findings.slice(0, max).map((f) => `line ${f.line} ${f.text}`);
-  if (findings.length > max) shown.push(`and ${findings.length - max} more`);
-  c.emit({
-    hookSpecificOutput: {
-      hookEventName: 'PostToolUse',
-      additionalContext:
-        `Basekit config lint, ${rel}: ${shown.join('; ')}. ` +
-        'Project standard: a value that can differ by environment, deployment, customer or time lives in the typed ' +
-        'config module with a documented default. A literal that should stay needs a `hardcoded: <reason>` comment ' +
-        'on or above the line. These are heuristics; ignore the ones that are not configuration.',
-    },
-  });
+    // 1. Config lint.
+    if (c.setting('config_lint') !== 'off') {
+      let text = '';
+      try {
+        text = fs.readFileSync(file, 'utf8');
+      } catch {
+        /* the file may have been moved since the edit */
+      }
+      const onlyLines =
+        input.tool_name === 'Write' ? null : new Set(added.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length >= 8));
+      const seen = new Set(session.data.lintSeen || []);
+      const findings = lint(rel, text, onlyLines).filter((f) => !seen.has(f.key));
+      if (findings.length) {
+        findings.forEach((f) => seen.add(f.key));
+        session.data.lintSeen = [...seen];
+        const max = c.setting('config_lint_max_findings');
+        const shown = findings.slice(0, max).map((f) => `line ${f.line} ${f.text}`);
+        if (findings.length > max) shown.push(`and ${findings.length - max} more`);
+        notes.push(
+          `Basekit config lint, ${rel}: ${shown.join('; ')}. ` +
+            'Project standard: a value that can differ by environment, deployment, customer or time lives in the typed ' +
+            'config module with a documented default. A literal that should stay needs a `hardcoded: <reason>` comment ' +
+            'on or above the line. These are heuristics; ignore the ones that are not configuration.'
+        );
+      }
+    }
+  }
+
+  if (dirty) session.save();
+  if (notes.length) {
+    c.emit({ hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: notes.join('\n\n') } });
+  }
 }
 
 try {

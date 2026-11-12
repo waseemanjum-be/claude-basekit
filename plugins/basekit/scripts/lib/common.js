@@ -59,6 +59,40 @@ function readHookInput() {
   }
 }
 
+const STATE_MAX_AGE_DAYS = 7; // hardcoded: per-session scratch files are useless once the session is long gone
+
+/**
+ * Per-session scratch state shared by the hooks: findings already reported,
+ * lines edited this turn, reviewers that have run. Returns { data, save }.
+ */
+function sessionState(sessionId) {
+  const dir = dataDir();
+  const id = String(sessionId || 'manual').replace(/[^A-Za-z0-9_-]/g, '') || 'manual';
+  const file = path.join(dir, `session-${id}.json`);
+  const isNew = !fs.existsSync(file);
+  const data = readJson(file, {});
+  return {
+    data,
+    save() {
+      writeJson(file, data);
+      if (isNew) pruneSessionState(dir);
+    },
+  };
+}
+
+function pruneSessionState(dir) {
+  const cutoff = Date.now() - STATE_MAX_AGE_DAYS * 86400000;
+  for (const f of fs.readdirSync(dir)) {
+    if (!/^(session|lint)-.*\.json$/.test(f)) continue;
+    const full = path.join(dir, f);
+    try {
+      if (fs.statSync(full).mtimeMs < cutoff) fs.unlinkSync(full);
+    } catch {
+      /* another session may have removed it */
+    }
+  }
+}
+
 function loadRegistry() {
   return readJson(path.join(PLUGIN_ROOT, 'registry.json'), { entries: [], reviewed: null });
 }
@@ -83,6 +117,7 @@ module.exports = {
   readJson,
   writeJson,
   readHookInput,
+  sessionState,
   loadRegistry,
   daysSince,
   emit,

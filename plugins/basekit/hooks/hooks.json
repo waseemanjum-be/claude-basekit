@@ -1,14 +1,29 @@
 {
-  "description": "Basekit: session-start toolkit scan, secret guard on writes and commits, advisory config lint after edits.",
+  "description": "Basekit: house rules and toolkit check at session start, secret guard and review gate on writes and commits, edit notes after edits, report check when a turn ends.",
   "hooks": {
     "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/session-rules.js"
+            ],
+            "timeout": 10
+          }
+        ]
+      },
       {
         "matcher": "startup",
         "hooks": [
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/session-scan.js"],
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/session-scan.js"
+            ],
             "timeout": 30,
             "statusMessage": "Basekit: checking toolkit"
           }
@@ -22,7 +37,9 @@
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/secret-guard.js"],
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/secret-guard.js"
+            ],
             "timeout": 10
           }
         ]
@@ -34,8 +51,21 @@
             "type": "command",
             "if": "Bash(git *)",
             "command": "node",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/secret-guard.js", "--staged"],
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/secret-guard.js",
+              "--staged"
+            ],
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "if": "Bash(git *)",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/review-gate.js",
+              "--check"
+            ],
+            "timeout": 20
           }
         ]
       }
@@ -47,7 +77,39 @@
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/config-lint.js"],
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/config-lint.js"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "(^|:)(code-reviewer|test-auditor|security-auditor)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/review-gate.js",
+              "--record"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/report-check.js"
+            ],
             "timeout": 10
           }
         ]

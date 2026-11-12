@@ -1,8 +1,7 @@
 ---
 name: review
-description: Review current changes with the code, test and security specialists and merge the results.
+description: Review current changes with the code, test and security specialists and merge the results. Use before committing code changes, and when the commit gate asks for a review.
 argument-hint: "[scope: staged | <base-branch> | <path> | pr <number>] [quick] [fix]"
-disable-model-invocation: true
 ---
 
 # /basekit:review
@@ -69,6 +68,11 @@ Keep it to what the owner must decide or do. No summary of the diff.
 
 ## 5. Afterwards
 
+- **When you started this review yourself** (before a commit, or because the
+  commit gate asked for one): if there are no "Must fix" items, go ahead with
+  the commit and put the verdict and the "Should fix" list in your reply. If
+  there are "Must fix" items, do not commit. Show them and ask the user whether
+  to fix them.
 - With `fix` in the arguments: apply the "Must fix" items one at a time,
   smallest change each, re-run the relevant check after each, then list what
   changed. Do not touch "Should fix" or debt items without being asked.

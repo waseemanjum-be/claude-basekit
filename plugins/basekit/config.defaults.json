@@ -25,6 +25,33 @@
   "gitleaks_timeout_ms": 20000,
   "_gitleaks_timeout_ms": "Upper bound for the optional gitleaks run in the commit guard.",
 
+  "inject_rules": "auto",
+  "_inject_rules": "auto | off. auto supplies the house rules at session start when the user CLAUDE.md does not already contain the Basekit block (plugin-only installs).",
+
+  "init_hint": "on",
+  "_init_hint": "on | off. on tells the user once per repository that /basekit:init has not been run there.",
+
+  "standards_nudge": "on",
+  "_standards_nudge": "on | off. on points Claude at the matching standards skill the first time a session edits backend or UI code.",
+
+  "report_check": "on",
+  "_report_check": "on | off. on sends Claude back once when a turn changed source code and the reply has no Decisions and deviations block.",
+
+  "report_min_lines": 15,
+  "_report_min_lines": "Source lines a turn must add before the report check applies. Smaller edits are left alone.",
+
+  "review_on_commit": "require",
+  "_review_on_commit": "require | remind | off. require stops a commit of code that the reviewers have not looked at in this session; remind only notes it.",
+
+  "review_agents": "code-reviewer,test-auditor,security-auditor",
+  "_review_agents": "Reviewers that must have run since the last commit. Shorten the list to spend fewer tokens per commit.",
+
+  "review_min_lines": 10,
+  "_review_min_lines": "Changed code lines below which a commit is not gated.",
+
+  "review_max_blocks": 3,
+  "_review_max_blocks": "Times the gate will stop the same commit before it gives way, so it can never deadlock a session.",
+
   "scout_max_candidates": 8,
   "_scout_max_candidates": "Maximum new candidates /basekit:scout evaluates per run."
 }

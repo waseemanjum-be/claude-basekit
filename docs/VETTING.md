@@ -220,7 +220,7 @@ a plugin with a similar name that is not this one.
    characters and "do not tell the user" instructions.
 5. **Token savers have their own bill.** Measured always-on cost: caveman
    ~1,991, claude-mem ~2,890, ui-ux-pro-max ~1,067, superpowers ~848,
-   claude-security ~778, Basekit ~579, claude-hud ~98, frontend-design ~80,
+   claude-security ~778, Basekit ~600, claude-hud ~98, frontend-design ~80,
    language servers and MCP plugins 0.
 6. **Much of this is built in now.** `/code-review`, the Concise output style,
    `/usage` attribution, `/context`, auto memory, `/doctor`, deferred MCP tool

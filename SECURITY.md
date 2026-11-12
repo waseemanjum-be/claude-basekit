@@ -18,14 +18,20 @@ Worth reporting:
 
 ## What this kit runs on your machine
 
-Three Node scripts, as Claude Code hooks, with no dependencies and no network
+Six Node scripts, as Claude Code hooks, with no dependencies and no network
 requests of their own:
 
 | Hook | Script | Reads | Writes |
 | --- | --- | --- | --- |
-| SessionStart | `scripts/session-scan.js` | output of `claude plugin list`, `registry.json` | a state file in the plugin's data directory |
+| SessionStart | `scripts/session-rules.js` | whether your user `CLAUDE.md` has the Basekit block, whether the repository has a `CLAUDE.md` | a list of repositories already hinted, in the data directory |
+| SessionStart | `scripts/session-scan.js` | output of `claude plugin list`, `registry.json` | a state file in the data directory |
 | PreToolUse | `scripts/secret-guard.js` | the text of the pending write, or the staged diff | nothing |
-| PostToolUse | `scripts/config-lint.js` | the file that was just edited | a per-session state file in the data directory |
+| PreToolUse, SubagentStop | `scripts/review-gate.js` | the staged diff, the name of a finished reviewer | a per-session state file in the data directory |
+| PostToolUse | `scripts/config-lint.js` | the file that was just edited | the same per-session state file |
+| Stop | `scripts/report-check.js` | Claude's last reply | the same per-session state file |
+
+The data directory is the plugin's own folder under `~/.claude/plugins/data/`.
+Session state files are removed after seven days.
 
 `setup.js` runs only `claude plugin` commands and edits one marked block in
 your user `CLAUDE.md`, after asking. Nothing here pipes a download to a shell.
