@@ -1,0 +1,2 @@
+# Hooks and tests read these files byte for byte; keep line endings the same on every OS.
+* text=auto eol=lf

@@ -1,0 +1,15 @@
+{
+  "name": "basekit-marketplace",
+  "description": "Marketplace for the Basekit starter kit for Claude Code.",
+  "owner": {
+    "name": "Waseem"
+  },
+  "plugins": [
+    {
+      "name": "basekit",
+      "source": "./plugins/basekit",
+      "description": "Engineering standards, UI/backend/review agents, secret guard, config lint, and a vetted-plugin registry with a session-start scan.",
+      "category": "development"
+    }
+  ]
+}

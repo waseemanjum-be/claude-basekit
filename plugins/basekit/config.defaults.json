@@ -1,0 +1,30 @@
+{
+  "_doc": "Single source of defaults for Basekit scripts. Override any key with an environment variable named BASEKIT_<KEY_IN_UPPERCASE>, for example in the \"env\" block of ~/.claude/settings.json (all projects) or .claude/settings.json (one project).",
+
+  "scan_interval_hours": 24,
+  "_scan_interval_hours": "Minimum hours between session-start toolkit scans. Sessions inside the interval add zero tokens.",
+
+  "scout_stale_days": 14,
+  "_scout_stale_days": "Days after which the session scan mentions that the vetted registry is due for a /basekit:scout review.",
+
+  "scan_timeout_ms": 15000,
+  "_scan_timeout_ms": "Upper bound for the `claude plugin list` call made by the scan.",
+
+  "scan_max_listed": 8,
+  "_scan_max_listed": "Maximum plugin names listed per category in the scan summary.",
+
+  "secret_guard": "block",
+  "_secret_guard": "block | warn | off. block denies a write or commit that contains a high-confidence secret.",
+
+  "config_lint": "advise",
+  "_config_lint": "advise | off. advise reports likely hardcoded configuration after an edit; it never blocks.",
+
+  "config_lint_max_findings": 5,
+  "_config_lint_max_findings": "Maximum findings reported per edit, to keep the note short.",
+
+  "gitleaks_timeout_ms": 20000,
+  "_gitleaks_timeout_ms": "Upper bound for the optional gitleaks run in the commit guard.",
+
+  "scout_max_candidates": 8,
+  "_scout_max_candidates": "Maximum new candidates /basekit:scout evaluates per run."
+}

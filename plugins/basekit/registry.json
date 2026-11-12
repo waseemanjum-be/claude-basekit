@@ -1,0 +1,210 @@
+{
+  "schema": 1,
+  "reviewed": "2026-11-12",
+  "method": "Each entry was checked on the review date by reading its source (hooks, MCP config, install scripts, licence, telemetry docs) from a shallow clone, without running it. alwaysOnTokens is the 'Always-on' figure from `claude --plugin-dir <dir> plugin details <name>` on Claude Code 2.1.322; it excludes context a plugin's hooks inject and MCP tool calls. See docs/VETTING.md for the evidence behind each verdict.",
+  "marketplacePreference": ["claude-plugins-official", "anthropic-plugin-directory", "claude-community"],
+  "tiers": {
+    "core": "Installed by setup.js. Small, first-party or first-party-listed, directly serves the kit's three jobs.",
+    "stack": "Installed per project by /basekit:init when the language is present.",
+    "optional": "Sound. Install when the need exists; each one adds context or background work.",
+    "caution": "Usable, with caveats listed in notes. Never installed automatically.",
+    "avoid": "Not for this kit. Reason in notes."
+  },
+  "entries": [
+    {
+      "name": "frontend-design", "kind": "plugin", "tier": "core", "area": "ui",
+      "repo": "github.com/anthropics/claude-plugins-official", "licence": "see plugin",
+      "alwaysOnTokens": 80,
+      "why": "Anthropic's design skill: aesthetic direction, typography and layout choices that do not read as template defaults.",
+      "notes": "One skill, no hooks, no network."
+    },
+    {
+      "name": "context7", "kind": "plugin", "tier": "core", "area": "backend,ui",
+      "repo": "github.com/anthropics/claude-plugins-official", "licence": "MIT (upstash/context7)",
+      "alwaysOnTokens": 0,
+      "why": "Current library documentation on demand, so code uses today's API of an existing library instead of a remembered or hand-written one.",
+      "notes": "Remote MCP server at mcp.context7.com run by Upstash: the library names and questions Claude sends leave your machine. Tools are deferred, so nothing loads until used."
+    },
+    {
+      "name": "security-guidance", "kind": "plugin", "tier": "core", "area": "review",
+      "repo": "github.com/anthropics/claude-plugins-official", "licence": "see plugin",
+      "alwaysOnTokens": 0,
+      "why": "Anthropic's guard for code Claude writes: regex warnings on edits, a diff review when a turn ends, and a deeper review on git commit and push.",
+      "notes": "Needs Python 3.8+. The diff and commit reviews are extra model calls, on the newest Opus by default. Cost dials: SECURITY_REVIEW_MODEL=<cheaper model>, ENABLE_STOP_REVIEW=0 (keep commit and push reviews only), ENABLE_CODE_SECURITY_REVIEW=0 (pattern warnings only)."
+    },
+
+    {
+      "name": "typescript-lsp", "kind": "plugin", "tier": "stack", "area": "backend,ui", "stack": ["typescript", "javascript"],
+      "repo": "github.com/anthropics/claude-plugins-official", "alwaysOnTokens": 0,
+      "why": "Go-to-definition and type errors after each edit instead of grep plus file reads. Anthropic's cost guide lists language servers as a token saver.",
+      "notes": "Needs the language server binary installed; the plugin README names it."
+    },
+    {
+      "name": "pyright-lsp", "kind": "plugin", "tier": "stack", "area": "backend", "stack": ["python"],
+      "repo": "github.com/anthropics/claude-plugins-official", "alwaysOnTokens": 0,
+      "why": "Same as typescript-lsp, for Python.", "notes": "Needs pyright installed."
+    },
+    {
+      "name": "gopls-lsp", "kind": "plugin", "tier": "stack", "area": "backend", "stack": ["go"],
+      "repo": "github.com/anthropics/claude-plugins-official", "alwaysOnTokens": 0,
+      "why": "Same as typescript-lsp, for Go.", "notes": "Needs gopls installed."
+    },
+    {
+      "name": "rust-analyzer-lsp", "kind": "plugin", "tier": "stack", "area": "backend", "stack": ["rust"],
+      "repo": "github.com/anthropics/claude-plugins-official", "alwaysOnTokens": 0,
+      "why": "Same as typescript-lsp, for Rust.", "notes": "Needs rust-analyzer installed."
+    },
+
+    {
+      "name": "superpowers", "kind": "plugin", "tier": "optional", "area": "workflow",
+      "repo": "github.com/obra/superpowers", "licence": "MIT",
+      "alwaysOnTokens": 848,
+      "why": "Process discipline for multi-step feature work: brainstorm, plan, test-first, systematic debugging, verify before claiming done.",
+      "notes": "15 skills, one SessionStart hook that injects its 3.2 KB entry skill (about 800 more tokens per session), no network calls in the hook. Listed by Anthropic pinned to a commit. Choose this or gstack, not both."
+    },
+    {
+      "name": "claude-security", "kind": "plugin", "tier": "optional", "area": "review",
+      "repo": "github.com/anthropics/claude-plugins-official", "licence": "see plugin",
+      "alwaysOnTokens": 778,
+      "why": "Deep multi-agent vulnerability scan of a repository or a diff, with independent verification of each finding and optional patch files.",
+      "notes": "A scan spends a lot of tokens and asks you to confirm the cost first. Enable for release audits, disable in between: `claude plugin disable claude-security`."
+    },
+    {
+      "name": "claude-code-setup", "kind": "plugin", "tier": "optional", "area": "setup",
+      "repo": "github.com/anthropics/claude-plugins-official", "alwaysOnTokens": 141,
+      "why": "Read-only recommender: scans a codebase and suggests hooks, skills, MCP servers and subagents for it.",
+      "notes": "Useful once at project start alongside /basekit:init; disable afterwards."
+    },
+    {
+      "name": "claude-hud", "kind": "plugin", "tier": "optional", "area": "visibility",
+      "repo": "github.com/jarrodwatts/claude-hud", "licence": "MIT", "marketplace": "claude-hud",
+      "installHint": "/plugin marketplace add jarrodwatts/claude-hud  then  /plugin install claude-hud@claude-hud  then  /hud",
+      "alwaysOnTokens": 98,
+      "why": "Status line showing context fill, tool activity, agents and todos. Seeing context fill is what makes /clear and /compact habits stick.",
+      "notes": "No runtime dependencies, no hooks, no network or process-spawning calls found in src. Runs under Node's permission model. Needs Node 22.18+. Third-party marketplace: not reviewed by Anthropic, auto-update is off by default (keep it off and update deliberately)."
+    },
+    {
+      "name": "playwright-cli", "kind": "cli", "tier": "optional", "area": "ui,testing",
+      "repo": "github.com/microsoft/playwright-cli", "licence": "Apache-2.0",
+      "installHint": "npm install -g @playwright/cli@latest  then  playwright-cli install --skills",
+      "why": "Lets Claude open the app in a real browser, click through a flow and screenshot it. Microsoft's own README recommends the CLI plus skills over the MCP server for coding agents because it does not load tool schemas and page trees into context.",
+      "notes": "Use the `playwright` MCP plugin (below) only for long exploratory sessions that need persistent page state."
+    },
+    {
+      "name": "playwright", "kind": "plugin", "tier": "optional", "area": "ui,testing",
+      "repo": "github.com/anthropics/claude-plugins-official", "alwaysOnTokens": 0,
+      "why": "Playwright MCP server by Microsoft.",
+      "notes": "Runs `npx @playwright/mcp@latest`, an unpinned npm package fetched at start. Prefer playwright-cli for routine checks."
+    },
+    {
+      "name": "shadcn skill", "kind": "skill", "tier": "optional", "area": "ui",
+      "repo": "github.com/shadcn-ui/ui", "licence": "MIT",
+      "installHint": "npx skills add shadcn/ui",
+      "why": "For projects with components.json: reads the project's shadcn setup and adds, searches and composes real registry components through the shadcn CLI instead of hand-writing copies.",
+      "notes": "Restricts itself to the shadcn CLI via allowed-tools."
+    },
+    {
+      "name": "impeccable", "kind": "plugin", "tier": "caution", "area": "ui",
+      "repo": "github.com/pbakaus/impeccable", "licence": "Apache-2.0",
+      "installHint": "npx impeccable install",
+      "alwaysOnTokens": 295,
+      "why": "Design audit, critique and polish commands with anti-pattern detection.",
+      "notes": "Three hooks (SessionStart, PostToolUse on Edit|Write, Stop); its README says the first edit can download its engine. Fetches visual directions from impeccable.style when a design starts. Telemetry on unless DO_NOT_TRACK=1 or `npx impeccable telemetry off`."
+    },
+    {
+      "name": "ui-ux-pro-max", "kind": "plugin", "tier": "caution", "area": "ui",
+      "repo": "github.com/nextlevelbuilder/ui-ux-pro-max-skill", "licence": "MIT", "marketplace": "ui-ux-pro-max-skill",
+      "installHint": "/plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill  then  /plugin install ui-ux-pro-max@ui-ux-pro-max-skill",
+      "alwaysOnTokens": 1067,
+      "why": "Local searchable database of styles, palettes, font pairings and per-stack guidance.",
+      "notes": "Seven skills cost about 1,070 tokens in every session. Needs Python. Worth it only on design-heavy projects; enable at project scope."
+    },
+    {
+      "name": "vercel agent-skills", "kind": "skill", "tier": "caution", "area": "ui",
+      "repo": "github.com/vercel-labs/agent-skills", "licence": "MIT (per skill)",
+      "installHint": "npx skills add vercel-labs/agent-skills",
+      "why": "react-best-practices and web-design-guidelines for React and Next.js projects.",
+      "notes": "web-design-guidelines fetches its rules from a GitHub URL at run time, so what it tells Claude can change without a new install."
+    },
+    {
+      "name": "figma", "kind": "plugin", "tier": "optional", "area": "ui",
+      "repo": "github.com/figma/mcp-server-guide", "alwaysOnTokens": null,
+      "why": "Reads Figma files, components and tokens when designs live in Figma.",
+      "notes": "Not measured here. Listed by Anthropic pinned to a commit. Needs a Figma account."
+    },
+    {
+      "name": "gitleaks", "kind": "cli", "tier": "optional", "area": "review",
+      "repo": "github.com/gitleaks/gitleaks", "licence": "MIT",
+      "installHint": "brew install gitleaks  (or a release binary from the repo)",
+      "why": "Secret scanner with a large maintained rule set. Basekit's secret guard calls it on commit when it is on PATH, in addition to its own patterns.",
+      "notes": "Recommended on every machine. Also add it to CI: a local hook can be bypassed."
+    },
+    {
+      "name": "semgrep", "kind": "plugin", "tier": "optional", "area": "review",
+      "repo": "github.com/semgrep/mcp-marketplace", "alwaysOnTokens": null,
+      "why": "Static analysis findings fed to Claude while it writes.",
+      "notes": "Not measured here. In claude-plugins-official pinned to a commit; not found under this name in the built-in directory on the review date."
+    },
+    {
+      "name": "graphify", "kind": "cli", "tier": "optional", "area": "tokens",
+      "repo": "github.com/safishamsi/graphify", "licence": "Apache-2.0",
+      "installHint": "uv tool install graphifyy   (the PyPI name has two y's)  then  graphify install --project",
+      "why": "Builds a local knowledge graph of a codebase with tree-sitter so Claude queries structure instead of grepping. Suits large, unfamiliar repositories.",
+      "notes": "Code parsing is local with no model call; the query log is off unless enabled. Its installer adds instructions to CLAUDE.md and a PreToolUse hook that steers Claude to the graph before raw file searches. The package name on PyPI is `graphifyy`: installing a similarly named package is the risk to watch. Savings are the author's figures; check yours with /usage."
+    },
+    {
+      "name": "rtk", "kind": "cli", "tier": "caution", "area": "tokens",
+      "repo": "github.com/rtk-ai/rtk", "licence": "Apache-2.0",
+      "installHint": "brew install rtk  then  rtk init -g",
+      "why": "Hook that rewrites shell commands so their output reaches Claude compressed.",
+      "notes": "Telemetry is off unless you opt in. Reviewed from the README and licence only, not the Rust source. Compressed output can hide the one line a debugging session needs; measure before keeping it."
+    },
+    {
+      "name": "caveman", "kind": "plugin", "tier": "caution", "area": "tokens",
+      "repo": "github.com/JuliusBrussee/caveman", "licence": "Apache-2.0",
+      "alwaysOnTokens": 1991,
+      "why": "Terse output style to cut output tokens.",
+      "notes": "The plugin adds about 1,990 tokens to every session before it saves any. Claude Code's built-in Concise output style gives terse replies with no plugin. The separate caveman CLI sends usage stats by default and its Auto mode sends prompts to Caveman Cloud once signed in. The built-in directory lists a `caveman` from a different repository (akramsystems/caveman), which was not reviewed."
+    },
+    {
+      "name": "claude-mem", "kind": "plugin", "tier": "caution", "area": "tokens",
+      "repo": "github.com/thedotmack/claude-mem", "licence": "Apache-2.0",
+      "alwaysOnTokens": 2890,
+      "why": "Captures every session, compresses it with a model and injects relevant history into new sessions.",
+      "notes": "About 2,890 always-on tokens plus the context it injects, 30 skills, hooks on 9 events including every tool call, a background worker on localhost, model calls for compression, anonymous analytics on by default. At least one CVE is published against past versions. Claude Code's own auto memory plus CLAUDE.md cover the common need at no extra cost."
+    },
+    {
+      "name": "headroom", "kind": "cli", "tier": "caution", "area": "tokens",
+      "repo": "github.com/headroomlabs-ai/headroom", "licence": "Apache-2.0",
+      "why": "Local proxy that compresses tool output and context before it reaches the model.",
+      "notes": "Every prompt passes through the proxy. Anonymous beacon on by default (HEADROOM_TELEMETRY=off). Pointing Claude Code at a custom base URL drops the 1M context window to 200k unless you add `--1m` (headroom issue 1158). Compression is lossy for the model's view. Try it only on API-billed, tool-heavy work and compare /usage before and after."
+    },
+    {
+      "name": "gstack", "kind": "skill", "tier": "caution", "area": "workflow",
+      "repo": "github.com/garrytan/gstack", "licence": "MIT",
+      "why": "A whole product team as skills: office hours, plan reviews, review, QA in a real browser, ship.",
+      "notes": "64 skills with descriptions (about 1,300 tokens of listing), needs Bun, runs a browser daemon, checks GitHub for updates by default, and its outside reviews send code to Codex or Claude Code under your login unless disabled. Telemetry is opt-in. Overlaps superpowers almost entirely: choose one."
+    },
+    {
+      "name": "task-observer", "kind": "skill", "tier": "caution", "area": "workflow",
+      "repo": "github.com/rebelytics/one-skill-to-rule-them-all", "licence": "CC-BY-4.0",
+      "why": "Logs corrections and repeated work during tasks and turns them into skill updates in a weekly review.",
+      "notes": "Not a token saver: its SKILL.md is about 12,700 tokens and its description asks to be used during any multi-step task. /basekit:learn does the narrow version on demand. The built-in directory lists a similarly named plugin that is not this one."
+    },
+    {
+      "name": "omniroute", "kind": "cli", "tier": "avoid", "area": "routing",
+      "repo": "github.com/diegosouzapw/OmniRoute", "licence": "MIT",
+      "why": "Local gateway that routes any coding tool to 389 providers with fallback.",
+      "notes": "It sits in the path of every prompt and credential, ships a TLS-intercepting mode that installs its own CA, and its changelog references 38 distinct CVE or GHSA identifiers (its own advisories and dependency fixes). Its subscription-quota routing conflicts with Anthropic's consumer terms, which since February 2026 bar Free/Pro/Max OAuth tokens in any tool other than Claude Code and claude.ai. Routed requests also land on other models, so the kit's standards and reviewers stop being comparable. If you need several providers, use API keys through a gateway you run."
+    }
+  ],
+  "builtins": [
+    { "name": "/code-review", "why": "Local review of the branch diff; `/code-review ultra` runs the cloud multi-agent version. Use as a second opinion after /basekit:review." },
+    { "name": "Concise output style", "why": "Terse replies without a plugin. See the Output styles page of the Claude Code docs for how to select it." },
+    { "name": "/usage", "why": "Shows which skills, subagents, plugins and MCP servers your usage went to, with recommendations. The way to check any token-saving claim." },
+    { "name": "/context", "why": "Shows what is filling the context window right now." },
+    { "name": "auto memory and CLAUDE.md", "why": "Persistent project knowledge without a memory plugin." },
+    { "name": "/doctor", "why": "Full setup check-up, including broken hooks and plugins." },
+    { "name": "claude plugin details <name>", "why": "Component inventory and projected always-on token cost of any plugin, before or after install." }
+  ]
+}

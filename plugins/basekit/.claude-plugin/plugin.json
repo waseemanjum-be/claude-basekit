@@ -1,0 +1,20 @@
+{
+  "name": "basekit",
+  "displayName": "Basekit",
+  "version": "1.0.0",
+  "description": "Starter kit for every project: engineering standards, UI/backend/review agents, secret guard, config lint, and a vetted-plugin registry with a session-start scan.",
+  "author": {
+    "name": "Waseem"
+  },
+  "homepage": "https://github.com/waseemanjum-be/claude-basekit",
+  "repository": "https://github.com/waseemanjum-be/claude-basekit",
+  "license": "MIT",
+  "keywords": [
+    "standards",
+    "code-review",
+    "security",
+    "ui",
+    "backend",
+    "starter-kit"
+  ]
+}
