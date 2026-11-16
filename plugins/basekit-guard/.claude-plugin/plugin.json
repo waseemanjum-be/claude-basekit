@@ -8,6 +8,10 @@
   },
   "homepage": "https://github.com/waseemanjum-be/claude-basekit",
   "repository": "https://github.com/waseemanjum-be/claude-basekit",
+  "documentationUrl": "https://github.com/waseemanjum-be/claude-basekit/blob/main/plugins/basekit-guard/README.md",
+  "supportUrl": "https://github.com/waseemanjum-be/claude-basekit/issues",
+  "privacyPolicyUrl": "https://github.com/waseemanjum-be/claude-basekit/blob/main/PRIVACY.md",
+  "termsOfServiceUrl": "https://github.com/waseemanjum-be/claude-basekit/blob/main/TERMS.md",
   "license": "MIT",
   "keywords": [
     "hooks",

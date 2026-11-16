@@ -106,7 +106,8 @@ test('the directory-listed plugin ships instructions only', () => {
   // Anthropic's plugin directory holds hook commands, scripts, pre-approved tools and
   // unlisted frontmatter keys for review unless the publisher is a Verified organization.
   const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
-  const all = walk(CORE);
+  // Finder and Explorer drop these in any folder they open; .gitignore keeps them out of the repository.
+  const all = walk(CORE).filter((f) => !/(^|[\\/])(\.DS_Store|Thumbs\.db)$/.test(f));
   for (const f of all) assert.match(f, /\.(md|png)$|plugin\.json$/, `not an instruction file: ${f}`);
   for (const dir of ['hooks', 'scripts', 'bin']) assert.ok(!fs.existsSync(path.join(CORE, dir)), `${dir}/ must live in basekit-guard`);
   for (const f of all.filter((n) => n.endsWith('.md'))) {
@@ -115,6 +116,18 @@ test('the directory-listed plugin ships instructions only', () => {
     assert.doesNotMatch(fm[1], /^(allowed-tools|hooks|mcpServers|skills|permissionMode):/m, `frontmatter key held for review: ${f}`);
   }
   assert.ok(fs.existsSync(path.join(CORE, '.claude-plugin', 'icon.png')), 'directory listing needs an icon');
+});
+
+test('both manifests carry the directory listing links, and each linked file exists', () => {
+  const repo = 'https://github.com/waseemanjum-be/claude-basekit';
+  for (const dir of [CORE, PLUGIN]) {
+    const m = JSON.parse(fs.readFileSync(path.join(dir, '.claude-plugin', 'plugin.json'), 'utf8'));
+    for (const k of ['documentationUrl', 'supportUrl', 'privacyPolicyUrl', 'termsOfServiceUrl']) {
+      assert.ok(typeof m[k] === 'string' && m[k].startsWith(`${repo}/`), `${m.name}: ${k} must be an https link into the repository`);
+      const file = /\/blob\/main\/(.+)$/.exec(m[k]);
+      if (file) assert.ok(fs.existsSync(path.join(ROOT, file[1])), `${m.name}: ${k} points at a missing file: ${file[1]}`);
+    }
+  }
 });
 
 test('registry entries are complete and tiers are known', () => {

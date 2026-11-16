@@ -213,6 +213,12 @@ date, open an issue with a link and it will be corrected.
 
 See `CONTRIBUTING.md`. Security reports: `SECURITY.md`.
 
+## Support, privacy and terms
+
+- Help and bug reports: `SUPPORT.md`
+- What the kit reads and stores (it collects nothing): `PRIVACY.md`
+- Terms of use: `TERMS.md`
+
 ## Limits
 
 - The secret guard and config lint are pattern matchers. They catch the common
